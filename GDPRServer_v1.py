@@ -32,6 +32,7 @@ class Blockchain(object):
             "timestamp": timestamp,            
             "transactions": self.current_transactions,
             "proof": proof,
+            # "self_hash":self.hash(self.chain),
             "previous_hash": previous_hash or self.hash(self.chain[-1]),
         } 
 
@@ -147,27 +148,6 @@ node_identifier = str(uuid4()).replace("-", "")
 # Instantiate the Blockchain
 blockchain = Blockchain()
 
-# @app.route("/forge",methods=["GET"])
-# def forge():
-#     #return "We will forge the new block be adding to the chain"
-#     last_block = blockchain.last_block
-#     last_proof = last_block["proof"]
-#     proof = blockchain.proof_of_work(last_proof)
-
-#     block = blockchain.new_block(proof)
-
-#     # blockchain.new_transaction_user(type="0",userId="005",commonId="005",boolean="0")
-
-#     response = {
-#         "message": "New Block Forged",
-#         "index": block["index"],
-#         "transactions": block["transactions"],
-#         "proof": block["proof"],
-#         "previous_hash": block["previous_hash"],
-#     }
-#     return jsonify(response), 200
-
-
 @app.route("/userPermission",methods=["POST"])
 def userModify():
     
@@ -219,9 +199,41 @@ def cpnyModify():
     response = {'message':"Thank You and modify added  to Block %s" % (index)}
     return jsonify(response),201
 
-@app.route("/cpnyCheck",methods=["GET"])
+@app.route("/cpnyCheck",methods=["POST"])
 def cpnyCheck():
-    return "We will check the state of permission"
+    # return "We will check the state of permission"
+    '''
+    Determine if a given permission of specific user's state
+    :return: <bool> True if the user agree, False if not
+    '''
+    values = request.get_json()
+
+    # Check that the required fields are in the POST'ed data
+    required=["userId","commonId","timestamp"]
+
+    if not all(k in values for k in required):
+        return "Missing values", 400
+
+    # last_block = blockchain.chain[0]
+    current_index = 1
+
+    while current_index < len(blockchain.chain):
+        block = blockchain.chain[current_index]
+        tranTmp = block["transactions"]
+        transacTmp = tranTmp[0]
+        
+        # if (block["type"]==0 and block["userId"]==values["userId"] and block["commonId"]== values["commonId"]):
+        if (transacTmp["type"]== 0): 
+            if transacTmp["userId"]==values["userId"]: 
+                if transacTmp["commonId"]== values["commonId"]:
+        
+                    state = transacTmp["boolean"]
+                    break
+        else:
+            current_index += 1
+    
+    response = {'Permission':state, 'PermissionTime':transacTmp["timestamp"]}
+    return jsonify(response),201
 
 @app.route("/chain", methods=["GET"])
 def full_chain():
