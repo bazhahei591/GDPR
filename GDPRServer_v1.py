@@ -3,7 +3,7 @@ import hashlib
 import json
 from textwrap import dedent
 from datetime import datetime
-from time import time
+import time
 from uuid import uuid4
 
 from flask import Flask
@@ -26,15 +26,14 @@ class Blockchain(object):
         :param previous_hash: (Optional) <str> Hash of previous Block
         :return: <dict> New Block
         """
-
+        timestamp = int(time.time())
         block = {
             "index": len(self.chain) + 1,
-            "timestamp": time(),            
-            # "timestamp": datetime.utcnow(),
+            "timestamp": timestamp,            
             "transactions": self.current_transactions,
             "proof": proof,
             "previous_hash": previous_hash or self.hash(self.chain[-1]),
-        }
+        } 
 
         # Reset the current list of transactions
         self.current_transactions = []
@@ -43,7 +42,7 @@ class Blockchain(object):
         return block
 
     # def new_transaction_user(self, type, userId, commonId, boolean, datetime):
-    def new_transaction_user(self, type, userId, commonId, boolean):
+    def new_transaction_user(self, type, userId, commonId, boolean,timestamp):
     
         # Adds a new transaction to the list of user permission record.
         """
@@ -52,23 +51,23 @@ class Blockchain(object):
         :param userId: <str> User id for each user
         :param commonId: <str> Foreign key from transaction_cpny
         :param boolean: <boolean> Agree with the permission as 1 or disagree as 0
+        :param timestamp: <time> Time of this transaction happen (utc)
         :return: <int> The index of the Block that will hold this transaction
         """
-        # :param datetime: <datetime> Time of this transaction happen (utc)     
-
+        timestamp = int(time.time())
         self.current_transactions.append(
             {
                 "type": 0,
                 "userId": userId,
                 "commonId": commonId,
                 "boolean": 0,
-                # "datetime": datetime.utcnow(),
+                "timestamp": timestamp,
             }
         )
 
         return self.last_block["index"] + 1
 
-    def new_transaction_cpny(self, type, commonId, version, cpnyId, datetime, text):
+    def new_transaction_cpny(self, type, commonId, version, cpnyId, timestamp, text):
         # Adds a new transaction to the list of company permission record.
         """
         生成新交易信息，信息将加入到下一个待挖的区块中
@@ -76,17 +75,18 @@ class Blockchain(object):
         :param commonId: <str> Permission id to show the same permission (with different version)
         :param version: <int> Permission version 
         :param cpnyId: <str> Company id for each company
-        :param datetime: <datetime> Time of this transaction happen (utc)
+        :param timestamp: <int> Time of this transaction happen (utc)
         :param text: <str> Text of each permission
         """
-
+        timestamp = int(time.time())
         self.current_transactions.append(
             {
                 "type": 1,
                 "commonId": commonId,
                 "version": version,
                 "cpnyId": cpnyId,
-                # "datetime": datetime.utcnow(),
+                "time": timestamp,
+                "text":text
             }
         )
 
@@ -175,14 +175,14 @@ def userModify():
     values = request.get_json()
 
     # Check that the required fields are in the POST'ed data
-    # required=["type","userId","commonId","boolean","datetime"]
-    required=["type","userId","commonId","boolean"]    
+    required=["type","userId","commonId","boolean","timestamp"]
+    # required=["type","userId","commonId","boolean"]    
     if not all(k in values for k in required):
         return "Missing values", 400
     
     # Create a new Transaction
     index = blockchain.new_transaction_user(
-        values["type"],values["userId"],values["commonId"],values["boolean"]
+        values["type"],values["userId"],values["commonId"],values["boolean"],values["timestamp"]
     )
 
     last_block = blockchain.last_block
@@ -200,15 +200,21 @@ def cpnyModify():
     values = request.get_json()
 
     # Check that the required fields are in the POST'ed data
-    required=["type","commonId","version","cpnyId","datetime"]
+    required=["type","commonId","version","cpnyId","timestamp","text"]
     if not all(k in values for k in required):
         return "Missing values", 400
     
     # Create a new Transaction
-    index = blockchain.new_transaction_user(
-        # values["type"],values["commonId"],values["version"],values["cpnyId"],values["datetime"]
-        values["type"],values["commonId"],values["version"],values["cpnyId"]
+    index = blockchain.new_transaction_cpny(
+        values["type"],values["commonId"],values["version"],values["cpnyId"],values["timestamp"],values["text"]
+        # values["type"],values["commonId"],values["version"],values["cpnyId"]
     )
+
+    last_block = blockchain.last_block
+    last_proof = last_block["proof"]
+    proof = blockchain.proof_of_work(last_proof)
+
+    block = blockchain.new_block(proof)
 
     response = {'message':"Thank You and modify added  to Block %s" % (index)}
     return jsonify(response),201
