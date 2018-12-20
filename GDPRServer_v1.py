@@ -68,14 +68,14 @@ class Blockchain(object):
 
         return self.last_block["index"] + 1
 
-    def new_transaction_cpny(self, type, commonId, version, cpnyId, timestamp, text):
+    def new_transaction_cpny(self, type, commonId, version, pmsnId, timestamp, text):
         # Adds a new transaction to the list of company permission record.
         """
         生成新交易信息，信息将加入到下一个待挖的区块中
         :param type: <int> 0 for user, 1 for company
         :param commonId: <str> Permission id to show the same permission (with different version)
         :param version: <int> Permission version 
-        :param cpnyId: <str> Company id for each company
+        :param pmsnId: <str> Permission id for each company's permission
         :param timestamp: <int> Time of this transaction happen (utc)
         :param text: <str> Text of each permission
         """
@@ -85,7 +85,7 @@ class Blockchain(object):
                 "type": 1,
                 "commonId": commonId,
                 "version": version,
-                "cpnyId": cpnyId,
+                "pmsnId": pmsnId,
                 "time": timestamp,
                 "text":text
             }
@@ -180,13 +180,13 @@ def cpnyModify():
     values = request.get_json()
 
     # Check that the required fields are in the POST'ed data
-    required=["type","commonId","version","cpnyId","timestamp","text"]
+    required=["type","commonId","version","pmsnId","timestamp","text"]
     if not all(k in values for k in required):
         return "Missing values", 400
     
     # Create a new Transaction
     index = blockchain.new_transaction_cpny(
-        values["type"],values["commonId"],values["version"],values["cpnyId"],values["timestamp"],values["text"]
+        values["type"],values["commonId"],values["version"],values["pmsnId"],values["timestamp"],values["text"]
         # values["type"],values["commonId"],values["version"],values["cpnyId"]
     )
 
