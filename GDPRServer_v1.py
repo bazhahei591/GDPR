@@ -43,15 +43,15 @@ class Blockchain(object):
         return block
 
     # def new_transaction_user(self, type, userId, commonId, boolean, datetime):
-    def new_transaction_user(self, type, userId, commonId, boolean,timestamp):
-    
+    def new_transaction_user(self, type, userId, commonId, boolDict,timestamp):
+        
         # Adds a new transaction to the list of user permission record.
         """
         生成新交易信息，信息将加入到下一个待挖的区块中
         :param type: <int> 0 for user, 1 for company
         :param userId: <str> User id for each user
-        :param commonId: <str> Foreign key from transaction_cpny
-        :param boolean: <boolean> Agree with the permission as 1 or disagree as 0
+        :param commonId: <str> Foreign key from transaction_cpny. compny number and version number
+        :param boolDict: <dict> Permission number (string) is the key. And boolean agree with the permission as 1 or disagree as 0
         :param timestamp: <time> Time of this transaction happen (utc)
         :return: <int> The index of the Block that will hold this transaction
         """
@@ -61,7 +61,7 @@ class Blockchain(object):
                 "type": 0,
                 "userId": userId,
                 "commonId": commonId,
-                "boolean": 0,
+                "boolDict": boolDict,  
                 "timestamp": timestamp,
             }
         )
@@ -155,14 +155,14 @@ def userModify():
     values = request.get_json()
 
     # Check that the required fields are in the POST'ed data
-    required=["type","userId","commonId","boolean","timestamp"]
+    required=["type","userId","commonId","boolDict","timestamp"]
     # required=["type","userId","commonId","boolean"]    
     if not all(k in values for k in required):
         return "Missing values", 400
     
     # Create a new Transaction
     index = blockchain.new_transaction_user(
-        values["type"],values["userId"],values["commonId"],values["boolean"],values["timestamp"]
+        values["type"],values["userId"],values["commonId"],values["boolDict"],values["timestamp"]
     )
 
     last_block = blockchain.last_block
@@ -173,7 +173,7 @@ def userModify():
 
     response = {'message':"Thank You and add to Block %s" % (index)}
     return jsonify(response),201
-
+ 
 @app.route("/cpnyPermission",methods=["POST"])
 def cpnyModify():
     #return "we will modify a permission"
@@ -209,7 +209,7 @@ def cpnyCheck():
     values = request.get_json()
 
     # Check that the required fields are in the POST'ed data
-    required=["userId","commonId","timestamp"]
+    required=["userId","commonId","pmsnId","timestamp"]
 
     if not all(k in values for k in required):
         return "Missing values", 400
@@ -226,8 +226,8 @@ def cpnyCheck():
         if (transacTmp["type"]== 0): 
             if transacTmp["userId"]==values["userId"]: 
                 if transacTmp["commonId"]== values["commonId"]:
-        
-                    state = transacTmp["boolean"]
+                    pmsnNo = values["pmsnId"]
+                    state = transacTmp["boolDict"][pmsnNo]
                     break
         else:
             current_index += 1
